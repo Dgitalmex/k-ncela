@@ -1,0 +1,2451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Registros - Tienda</title>
+    
+    <!-- Agregar SDK de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            padding: 20px;
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            font-weight: 300;
+            letter-spacing: 1px;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 3px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            border-radius: 3px;
+        }
+
+        /* Sistema de pestañas */
+        .tabs-container {
+            margin-bottom: 25px;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(30, 30, 46, 0.8);
+            border-radius: 12px 12px 0 0;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .tab {
+            padding: 18px 25px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #b0b0b0;
+            transition: all 0.4s;
+            border-bottom: 3px solid transparent;
+            text-align: center;
+            flex: 1;
+            font-size: 1.05em;
+            letter-spacing: 0.5px;
+        }
+
+        .tab:hover {
+            background: rgba(52, 152, 219, 0.1);
+            color: #ffffff;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border-bottom: 3px solid #2ecc71;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(23, 25, 35, 0.9);
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-top: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Estilos para contenedores */
+        .entradas-salidas-container {
+            background: rgba(30, 32, 42, 0.8);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .entradas-salidas-title {
+            font-size: 1.5em;
+            color: #ffffff;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .entradas-salidas-title::before {
+            content: '⏰';
+            font-size: 1.2em;
+        }
+
+        .empleado-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+            letter-spacing: 0.5px;
+        }
+
+        input, select {
+            padding: 12px 15px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 0.95em;
+            transition: all 0.3s;
+            background: rgba(40, 42, 54, 0.8);
+            color: #ffffff;
+            backdrop-filter: blur(10px);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            background: rgba(50, 52, 64, 0.9);
+        }
+
+        input::placeholder {
+            color: #888;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+
+        .btn-entrada {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 48px;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-salida {
+            background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+            color: white;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 48px;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-comida {
+            background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
+            color: white;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 48px;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-admin {
+            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+            color: white;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 48px;
+            box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-entrada:hover, .btn-salida:hover, .btn-comida:hover, .btn-admin:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+
+        .btn-entrada:active, .btn-salida:active, .btn-comida:active, .btn-admin:active {
+            transform: translateY(0);
+        }
+
+        .empleado-info {
+            background: rgba(52, 152, 219, 0.1);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+
+        .empleado-nombre {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 5px;
+        }
+
+        .empleado-numero {
+            color: #b0b0b0;
+            font-size: 0.9em;
+        }
+
+        .form-container {
+            background: rgba(30, 32, 42, 0.8);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .form-title {
+            font-size: 1.5em;
+            color: #ffffff;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-title::before {
+            content: '📋';
+            font-size: 1.2em;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 14px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .table-container {
+            background: rgba(30, 32, 42, 0.8);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            overflow-x: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+        }
+
+        th {
+            padding: 15px 18px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #e0e0e0;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .status-select, .motivo-select {
+            padding: 8px 10px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            background-color: rgba(40, 42, 54, 0.8);
+            color: #ffffff;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .status-select:focus, .motivo-select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+        }
+
+        .btn-load {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-load:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-clear-base {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-clear-base:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filters-container {
+            background: rgba(40, 42, 54, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .filters-title {
+            font-size: 1.2em;
+            color: #ffffff;
+            margin-bottom: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filters-title::before {
+            content: '🔍';
+            font-size: 1.1em;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 0.9em;
+            color: #e0e0e0;
+            margin-bottom: 8px;
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-clear:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .results-count {
+            margin-top: 15px;
+            font-size: 0.95em;
+            color: #e0e0e0;
+            font-weight: 600;
+            padding: 10px 15px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+        }
+
+        /* Estilos para select múltiple */
+        .multiselect {
+            height: 100px;
+            padding: 8px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 0.85em;
+            transition: all 0.3s;
+            background-color: rgba(40, 42, 54, 0.8);
+            color: #ffffff;
+        }
+
+        .multiselect:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        .multiselect option {
+            padding: 8px;
+            cursor: pointer;
+            background: rgba(30, 32, 42, 0.9);
+        }
+
+        .multiselect option:checked {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+
+        .filter-help {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .sync-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .sync-online {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            box-shadow: 0 2px 10px rgba(39, 174, 96, 0.3);
+        }
+
+        .sync-offline {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
+        }
+
+        /* Estilos para el botón de eliminar */
+        .btn-delete {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+        }
+
+        /* Estilos para campos editables */
+        .editable-field {
+            padding: 8px 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            font-size: 0.85em;
+            background-color: rgba(40, 42, 54, 0.8);
+            color: #ffffff;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .editable-field:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            background: rgba(50, 52, 64, 0.9);
+        }
+
+        .modified-field {
+            background-color: rgba(255, 193, 7, 0.1) !important;
+            border-color: #ffc107 !important;
+        }
+
+        /* Registros modificados */
+        .registro-modificado {
+            background-color: rgba(255, 193, 7, 0.1) !important;
+            border-left: 4px solid #ffc107 !important;
+        }
+
+        /* Filtro de modificaciones */
+        .filter-modificaciones {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: rgba(255, 193, 7, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            margin-bottom: 15px;
+        }
+
+        .filter-modificaciones label {
+            font-weight: 600;
+            color: #ffc107;
+            margin: 0;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .filter-modificaciones input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #ffc107;
+        }
+
+        /* Modal para modificaciones */
+        .modify-modal {
+            display: none;
+            position: fixed;
+            z-index: 1500;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modify-modal-content {
+            background: linear-gradient(135deg, #1e1e2e 0%, #252536 100%);
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #e0e0e0;
+        }
+
+        .modify-modal-title {
+            font-size: 1.3em;
+            color: #ffc107;
+            margin-bottom: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modify-modal-title::before {
+            content: '✏️';
+        }
+
+        .modify-modal-message {
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            font-size: 1em;
+        }
+
+        .modify-input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 0.95em;
+            background: rgba(40, 42, 54, 0.8);
+            color: #ffffff;
+            transition: all 0.3s;
+        }
+
+        .modify-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            background: rgba(50, 52, 64, 0.9);
+        }
+
+        .modify-modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-modify-confirm {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-modify-confirm:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+        }
+
+        .btn-modify-cancel {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-modify-cancel:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(149, 165, 166, 0.4);
+        }
+
+        /* Estilos para el historial de modificaciones */
+        .modifications-history {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(40, 42, 54, 0.8);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modification-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: rgba(30, 32, 42, 0.8);
+            border-radius: 6px;
+            border-left: 3px solid #f39c12;
+            font-size: 0.85em;
+        }
+
+        .modification-field {
+            font-weight: 600;
+            color: #e67e22;
+        }
+
+        .modification-user {
+            font-weight: 600;
+            color: #3498db;
+        }
+
+        .modification-time {
+            color: #888;
+            font-size: 0.8em;
+        }
+
+        /* Modal para contraseñas */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1e1e2e 0%, #252536 100%);
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #e0e0e0;
+        }
+
+        .modal-title {
+            font-size: 1.3em;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .modal-message {
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            font-size: 1em;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 0.95em;
+            -webkit-text-security: disc;
+            text-security: disc;
+            background: rgba(40, 42, 54, 0.8);
+            color: #ffffff;
+            transition: all 0.3s;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            background: rgba(50, 52, 64, 0.9);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn-confirm {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-confirm:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-cancel {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-cancel:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(149, 165, 166, 0.4);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: -15px;
+            margin-bottom: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        /* Estilos para tabla de entradas/salidas */
+        .registro-entrada {
+            background-color: rgba(39, 174, 96, 0.1) !important;
+            border-left: 4px solid #27ae60;
+        }
+
+        .registro-salida {
+            background-color: rgba(231, 76, 60, 0.1) !important;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .registro-comida {
+            background-color: rgba(243, 156, 18, 0.1) !important;
+            border-left: 4px solid #f39c12;
+        }
+
+        .tipo-entrada {
+            color: #27ae60;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        .tipo-salida {
+            color: #c0392b;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        .tipo-comida {
+            color: #e67e22;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid, .empleado-form {
+                grid-template-columns: 1fr;
+            }
+            .button-group, .btn-group {
+                flex-direction: column;
+            }
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            .modal-content, .modify-modal-content {
+                margin: 20% auto;
+                width: 95%;
+            }
+            .modal-buttons, .modify-modal-buttons {
+                flex-direction: column;
+            }
+            .btn-group {
+                grid-template-columns: 1fr 1fr;
+            }
+            .tabs {
+                flex-direction: column;
+            }
+            .tab {
+                padding: 15px 20px;
+            }
+            table {
+                min-width: 1200px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Registros de Tienda 
+            <span id="syncStatus" class="sync-status sync-offline">🔴 Sin conexión</span>
+        </h1>
+
+        <!-- Sistema de pestañas -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <div class="tab active" onclick="cambiarPestana('principal')">📋 REGISTROS PRINCIPAL</div>
+            </div>
+            
+            <!-- Pestaña Principal -->
+            <div id="pestana-principal" class="tab-content active">
+                <!-- Sección de Entradas y Salidas -->
+                <div class="entradas-salidas-container">
+                    <h2 class="entradas-salidas-title">Control de Asistencia</h2>
+                    
+                    <div class="empleado-form">
+                        <div class="form-group">
+                            <label for="numeroEmpleado">Número de Empleado *</label>
+                            <input type="text" id="numeroEmpleado" placeholder="Ej: 101, 102, 103, 104, 112, 113" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Acciones</label>
+                            <div class="btn-group">
+                                <button class="btn-entrada" onclick="solicitarEntrada()">✅ Entrada</button>
+                                <button class="btn-salida" onclick="registrarSalida()">🚪 Salida</button>
+                                <button class="btn-comida" onclick="registrarComida('SALIDA')">🍽️ Comida S</button>
+                                <button class="btn-comida" onclick="registrarComida('ENTRADA')">↩️ Comida E</button>
+                                <button class="btn-admin" onclick="solicitarGuardarYLimpiar()">💾 Guardar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="empleadoInfo" class="empleado-info" style="display: none;">
+                        <div class="empleado-nombre" id="empleadoNombre"></div>
+                        <div class="empleado-numero" id="empleadoNumero"></div>
+                    </div>
+
+                    <h3 class="form-title">Registro de Asistencias</h3>
+                    <table id="tablaAsistencias">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Número</th>
+                                <th>Empleado</th>
+                                <th>Tipo</th>
+                                <th>Supervisor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaAsistenciasBody">
+                            <tr>
+                                <td colspan="6" class="no-data">No hay registros de asistencia aún.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Formulario de Registros de Tienda -->
+                <div class="form-container">
+                    <h2 class="form-title">Nuevo Registro de Tienda</h2>
+                    <form id="registroForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="fecha">Fecha *</label>
+                                <input type="text" id="fecha" readonly>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="folio">Folio *</label>
+                                <input type="text" id="folio" placeholder="Ej: 5251" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="tienda">Tienda *</label>
+                                <select id="tienda" required>
+                                    <option value="">Seleccione una tienda</option>
+                                    <option value="VALLE">VALLE</option>
+                                    <option value="POPULAR">POPULAR</option>
+                                    <option value="SAN AGUSTIN">SAN AGUSTIN</option>
+                                    <option value="PROGRESO1">PROGRESO1</option>
+                                    <option value="PROGRESO2">PROGRESO2</option>
+                                    <option value="CUAUTEPEC">CUAUTEPEC</option>
+                                    <option value="CUAUTITLAN">CUAUTITLAN</option>
+                                    <option value="TULPETLAC">TULPETLAC</option>
+                                    <option value="TIZAYUCA">TIZAYUCA</option>
+                                    <option value="ZUMPANGO">ZUMPANGO</option>
+                                    <option value="NICOLAS">NICOLAS</option>
+                                    <option value="TECAMAC1">TECAMAC1</option>
+                                    <option value="TECAMAC2">TECAMAC2</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="status">Status *</label>
+                                <select id="status" required>
+                                    <option value="">Seleccione un status</option>
+                                    <option value="CANCELADO DE CAJA">CANCELADO DE CAJA</option>
+                                    <option value="CANCELADO DE BASCULA">CANCELADO DE BASCULA</option>
+                                    <option value="PENDIENTE">PENDIENTE</option>
+                                    <option value="PAGAGO, NO COBRADO">PAGAGO, NO COBRADO</option>
+                                    <option value="PAGADO">PAGADO</option>
+                                    <option value="SIN CANCELAR">SIN CANCELAR</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="motivo">Motivo *</label>
+                                <select id="motivo" required>
+                                    <option value="">Seleccione un motivo</option>
+                                    <option value="LA TIENDA NO LO NOTIFICO">LA TIENDA NO LO NOTIFICO</option>
+                                    <option value="EN ESPERA DE FIRMA">EN ESPERA DE FIRMA</option>
+                                    <option value="PEDIDO CLIENTE SIN HORA">PEDIDO CLIENTE SIN HORA</option>
+                                    <option value="CADUCIDAD">CADUCIDAD</option>
+                                    <option value="PRODUCTO EN MAL ESTADO">PRODUCTO EN MAL ESTADO</option>
+                                    <option value="ERROR DEL VENDEDOR">ERROR DEL VENDEDOR</option>
+                                    <option value="ERROR DEL CLIENTE">ERROR DEL CLIENTE</option>
+                                    <option value="ERROR DEL SISTEMA">ERROR DEL SISTEMA</option>
+                                    <option value="ERROR DEL CAJERO">ERROR DEL CAJERO</option>
+                                    <option value="ERROR DE INVENTARIO">ERROR DE INVENTARIO</option>
+                                    <option value="NO HAY EXISTENCIA DE PRODUCTO">NO HAY EXISTENCIA DE PRODUCTO</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="vendedor">Vendedor *</label>
+                                <input type="text" id="vendedor" placeholder="Ej: DANIEL" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="monto">Monto *</label>
+                                <input type="number" id="monto" step="0.01" placeholder="0.00" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn">Agregar Registro</button>
+                    </form>
+                </div>
+
+                <div class="table-container">
+                    <div class="button-group">
+                        <button class="export-btn" onclick="exportarExcel()">📥 Exportar Excel</button>
+                        <button class="btn-load" onclick="solicitarCargarBase()">📂 Cargar Base</button>
+                        <button class="btn-load" onclick="sincronizarConFirebase()">🔄 Sincronizar</button>
+                        <button class="btn-clear-base" onclick="solicitarLimpiarBase()">🗑️ Limpiar Base</button>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;" onchange="cargarArchivo(event)">
+                    </div>
+
+                    <!-- FILTROS -->
+                    <div class="filters-container">
+                        <div class="filters-title">Filtros de Búsqueda</div>
+                        
+                        <!-- Filtro de modificaciones -->
+                        <div class="filter-modificaciones">
+                            <label>
+                                <input type="checkbox" id="filtroModificaciones" onchange="aplicarFiltros()">
+                                📝 Mostrar solo registros con modificaciones
+                            </label>
+                        </div>
+                        
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label for="filtroFechaInicio">Fecha Inicio</label>
+                                <input type="date" id="filtroFechaInicio" onchange="aplicarFiltros()">
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filtroFechaFin">Fecha Fin</label>
+                                <input type="date" id="filtroFechaFin" onchange="aplicarFiltros()">
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filtroFolio">Buscar Folio</label>
+                                <input type="text" id="filtroFolio" placeholder="Ej: 5251, 5252..." onkeyup="aplicarFiltros()">
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filtroTienda">Tiendas (Múltiple selección)</label>
+                                <select id="filtroTienda" class="multiselect" multiple onchange="aplicarFiltros()">
+                                    <option value="VALLE">VALLE</option>
+                                    <option value="POPULAR">POPULAR</option>
+                                    <option value="SAN AGUSTIN">SAN AGUSTIN</option>
+                                    <option value="PROGRESO1">PROGRESO1</option>
+                                    <option value="PROGRESO2">PROGRESO2</option>
+                                    <option value="CUAUTEPEC">CUAUTEPEC</option>
+                                    <option value="CUAUTITLAN">CUAUTITLAN</option>
+                                    <option value="TULPETLAC">TULPETLAC</option>
+                                    <option value="TIZAYUCA">TIZAYUCA</option>
+                                    <option value="ZUMPANGO">ZUMPANGO</option>
+                                    <option value="NICOLAS">NICOLAS</option>
+                                    <option value="TECAMAC1">TECAMAC1</option>
+                                    <option value="TECAMAC2">TECAMAC2</option>
+                                </select>
+                                <div class="filter-help">💡 Ctrl/Cmd para múltiples opciones</div>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filtroStatus">Status</label>
+                                <select id="filtroStatus" onchange="aplicarFiltros()">
+                                    <option value="">Todos los status</option>
+                                    <option value="CANCELADO DE CAJA">CANCELADO DE CAJA</option>
+                                    <option value="CANCELADO DE BASCULA">CANCELADO DE BASCULA</option>
+                                    <option value="PENDIENTE">PENDIENTE</option>
+                                    <option value="PAGAGO, NO COBRADO">PAGAGO, NO COBRADO</option>
+                                    <option value="PAGADO">PAGADO</option>
+                                    <option value="SIN CANCELAR">SIN CANCELAR</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <button class="btn-clear" onclick="limpiarFiltros()">🗑️ Limpiar</button>
+                            </div>
+                        </div>
+                        <div class="results-count" id="resultsCount"></div>
+                    </div>
+
+                    <h2 class="form-title">Registros Capturados</h2>
+                    <table id="tablaRegistros">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Folio</th>
+                                <th>Tienda</th>
+                                <th>Status</th>
+                                <th>Motivo</th>
+                                <th>Vendedor</th>
+                                <th>Monto</th>
+                                <th>Modificaciones</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaBody">
+                            <tr>
+                                <td colspan="9" class="no-data">No hay registros aún. Agregue uno usando el formulario.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para modificaciones -->
+    <div id="modifyModal" class="modify-modal">
+        <div class="modify-modal-content">
+            <div class="modify-modal-title">Registrar Modificación</div>
+            <div class="modify-modal-message" id="modifyModalMessage">
+                Se ha modificado el campo: <strong id="campoModificado"></strong><br>
+                Por favor, ingrese el motivo de la modificación y su nombre.
+            </div>
+            <input type="text" id="modifyReason" class="modify-input" placeholder="Motivo de la modificación" required>
+            <input type="text" id="modifyUser" class="modify-input" placeholder="Nombre de quien modifica" required>
+            <div class="modify-modal-buttons">
+                <button class="btn-modify-cancel" onclick="cancelarModificacion()">Cancelar</button>
+                <button class="btn-modify-confirm" onclick="confirmarModificacion()">Registrar Cambio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para contraseñas -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">🗑️ Eliminar Registro</div>
+            <div class="modal-message" id="modalMessage">
+                Está a punto de eliminar el registro con folio: <strong id="folioEliminar"></strong><br>
+                Esta acción no se puede deshacer.
+            </div>
+            <div class="error-message" id="passwordError" style="display: none;">
+                ❌ Contraseña incorrecta. Intente nuevamente.
+            </div>
+            <input type="password" id="passwordInput" class="password-input" placeholder="Ingrese la contraseña para eliminar" onkeypress="handlePasswordKeypress(event)">
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="cancelarEliminacion()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmarEliminacion()">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para autorización de entrada -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">🔐 Autorización de Supervisor</div>
+            <div class="modal-message" id="authModalMessage">
+                Se requiere autorización de supervisor para registrar la entrada de: <strong id="empleadoAuth"></strong>
+            </div>
+            <div class="error-message" id="authError" style="display: none;">
+                ❌ Contraseña de supervisor incorrecta.
+            </div>
+            <input type="password" id="authPassword" class="password-input" placeholder="Contraseña de supervisor" onkeypress="handleAuthKeypress(event)">
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="cancelarAutorizacion()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmarAutorizacion()">Autorizar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para cargar base -->
+    <div id="loadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">📂 Cargar Base de Datos</div>
+            <div class="modal-message" id="loadModalMessage">
+                Se requiere autorización para cargar archivos a la base de datos.
+            </div>
+            <div class="error-message" id="loadError" style="display: none;">
+                ❌ Contraseña incorrecta. Intente nuevamente.
+            </div>
+            <input type="password" id="loadPassword" class="password-input" placeholder="Ingrese la contraseña para cargar archivos" onkeypress="handleLoadKeypress(event)">
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="cancelarCarga()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmarCarga()">Cargar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para guardar y limpiar -->
+    <div id="saveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">💾 Guardar y Limpiar Registros</div>
+            <div class="modal-message" id="saveModalMessage">
+                Está a punto de guardar y limpiar todos los registros de asistencia.<br>
+                Esta acción no se puede deshacer.
+            </div>
+            <div class="error-message" id="saveError" style="display: none;">
+                ❌ Contraseña incorrecta. Intente nuevamente.
+            </div>
+            <input type="password" id="savePassword" class="password-input" placeholder="Ingrese la contraseña para guardar y limpiar" onkeypress="handleSaveKeypress(event)">
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="cancelarGuardado()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmarGuardado()">Guardar y Limpiar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para limpiar base -->
+    <div id="clearBaseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">⚠️ Limpiar Base de Datos</div>
+            <div class="modal-message" id="clearBaseModalMessage">
+                Está a punto de eliminar <strong>TODOS</strong> los datos del sistema:<br>
+                - Registros de tienda<br>
+                - Registros de asistencia<br><br>
+                <span style="color: #e74c3c; font-weight: 600;">⚠️ ESTA ACCIÓN NO SE PUEDE DESHACER ⚠️</span>
+            </div>
+            <div class="error-message" id="clearBaseError" style="display: none;">
+                ❌ Contraseña incorrecta. Intente nuevamente.
+            </div>
+            <input type="password" id="clearBasePassword" class="password-input" placeholder="Ingrese la contraseña para limpiar la base" onkeypress="handleClearBaseKeypress(event)">
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="cancelarLimpiarBase()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmarLimpiarBase()">Limpiar Base</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librería para leer archivos Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyACAJsnM5NOXdrnwNHtRzCA9q-tdlK79s0",
+            authDomain: "prueba3-6262b.firebaseapp.com",
+            databaseURL: "https://prueba3-6262b-default-rtdb.firebaseio.com",
+            projectId: "prueba3-6262b",
+            storageBucket: "prueba3-6262b.firebasestorage.app",
+            messagingSenderId: "444675679471",
+            appId: "1:444675679471:web:f2f139fb6891ccb5bde71a",
+            measurementId: "G-JQVPS3SX61"
+        };
+
+        // Inicializar Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log("Firebase inicializado correctamente");
+        } catch (error) {
+            console.error("Error al inicializar Firebase:", error);
+        }
+        
+        const database = firebase.database();
+
+        // CONTRASEÑAS (puedes cambiarlas)
+        const PASSWORD_ELIMINAR = "admin123";
+        const PASSWORD_SUPERVISOR = "super123";
+        const PASSWORD_LIMPIAR_BASE = "810518";
+
+        // Base de datos de empleados actualizada
+        const empleados = {
+            "101": "AYALA LOA ESMERALDA ABIGAIL",
+            "102": "DULCE ESPERANZA MARIEL ORTIZ", 
+            "103": "BRENDA ACOSTA MARTINEZ",
+            "104": "KENIA NOVALI LUNA ORTEGA",
+            "112": "ANTONIO",
+            "113": "PEDRO",
+            "1234": "JUAN PEREZ",
+            "5678": "MARIA GARCIA", 
+            "9012": "CARLOS LOPEZ",
+            "3456": "ANA MARTINEZ",
+            "7890": "LUIS RODRIGUEZ"
+        };
+
+        var registros = [];
+        var registrosFiltrados = [];
+        var asistencias = [];
+        var isOnline = false;
+        var registroAEliminar = null;
+        var empleadoActual = null;
+        var accionPendiente = null;
+        var modificacionPendiente = null;
+
+        // Funciones para el sistema de pestañas
+        function cambiarPestana(pestana) {
+            // Ocultar todas las pestañas
+            var pestanas = document.querySelectorAll('.tab-content');
+            pestanas.forEach(function(p) {
+                p.classList.remove('active');
+            });
+            
+            // Remover clase active de todas las pestañas
+            var tabs = document.querySelectorAll('.tab');
+            tabs.forEach(function(t) {
+                t.classList.remove('active');
+            });
+            
+            // Activar la pestaña seleccionada
+            document.getElementById('pestana-' + pestana).classList.add('active');
+            
+            // Activar el tab correspondiente
+            var tabActivo = document.querySelector('.tab[onclick="cambiarPestana(\'' + pestana + '\')"]');
+            if (tabActivo) {
+                tabActivo.classList.add('active');
+            }
+        }
+
+        // Funciones para limpiar base de datos
+        function solicitarLimpiarBase() {
+            document.getElementById('clearBasePassword').value = '';
+            document.getElementById('clearBaseError').style.display = 'none';
+            document.getElementById('clearBaseModal').style.display = 'block';
+            
+            setTimeout(function() {
+                document.getElementById('clearBasePassword').focus();
+            }, 100);
+        }
+
+        function confirmarLimpiarBase() {
+            var password = document.getElementById('clearBasePassword').value;
+            
+            if (password === PASSWORD_LIMPIAR_BASE) {
+                limpiarBaseDeDatos();
+                cerrarClearBaseModal();
+            } else {
+                document.getElementById('clearBaseError').style.display = 'block';
+                document.getElementById('clearBasePassword').value = '';
+                document.getElementById('clearBasePassword').focus();
+            }
+        }
+
+        function cancelarLimpiarBase() {
+            cerrarClearBaseModal();
+        }
+
+        function cerrarClearBaseModal() {
+            document.getElementById('clearBaseModal').style.display = 'none';
+        }
+
+        function handleClearBaseKeypress(event) {
+            if (event.key === 'Enter') confirmarLimpiarBase();
+        }
+
+        function limpiarBaseDeDatos() {
+            // Limpiar registros de tienda
+            registros = [];
+            registrosFiltrados = [];
+            
+            // Limpiar asistencias
+            asistencias = [];
+            
+            // Actualizar las tablas
+            actualizarTabla();
+            actualizarTablaAsistencias();
+            
+            // Limpiar Firebase si está conectado
+            if (isOnline) {
+                database.ref('registros').remove()
+                    .then(function() {
+                        console.log('Registros eliminados de Firebase');
+                    })
+                    .catch(function(error) {
+                        console.error('Error al eliminar registros de Firebase:', error);
+                    });
+                
+                database.ref('asistencias').remove()
+                    .then(function() {
+                        console.log('Asistencias eliminadas de Firebase');
+                    })
+                    .catch(function(error) {
+                        console.error('Error al eliminar asistencias de Firebase:', error);
+                    });
+            }
+            
+            alert('✅ Base de datos limpiada correctamente. Todos los registros han sido eliminados.');
+        }
+
+        // Funciones para el sistema de edición y modificaciones
+        function prepararEdicion(registroId, campo, valorActual) {
+            // Guardar el valor actual antes de abrir el modal
+            modificacionPendiente = {
+                registroId: registroId,
+                campo: campo,
+                valorAnterior: valorActual,
+                valorNuevo: valorActual
+            };
+            
+            document.getElementById('campoModificado').textContent = obtenerNombreCampo(campo);
+            document.getElementById('modifyReason').value = '';
+            document.getElementById('modifyUser').value = '';
+            document.getElementById('modifyModal').style.display = 'block';
+            
+            setTimeout(function() {
+                document.getElementById('modifyReason').focus();
+            }, 100);
+        }
+
+        function obtenerNombreCampo(campo) {
+            var nombres = {
+                'fecha': 'Fecha',
+                'folio': 'Folio',
+                'tienda': 'Tienda',
+                'status': 'Status',
+                'motivo': 'Motivo',
+                'vendedor': 'Vendedor',
+                'monto': 'Monto'
+            };
+            return nombres[campo] || campo;
+        }
+
+        function confirmarModificacion() {
+            var motivo = document.getElementById('modifyReason').value.trim();
+            var usuario = document.getElementById('modifyUser').value.trim();
+            
+            if (!motivo || !usuario) {
+                alert('Por favor, complete tanto el motivo como el nombre del usuario');
+                return;
+            }
+            
+            var ahora = new Date();
+            var timestamp = ahora.toLocaleString('es-MX');
+            
+            // Buscar el registro a modificar
+            for (var i = 0; i < registros.length; i++) {
+                if (registros[i].firebaseId === modificacionPendiente.registroId || registros[i].id === modificacionPendiente.registroId) {
+                    // Actualizar el valor del campo
+                    registros[i][modificacionPendiente.campo] = modificacionPendiente.valorNuevo;
+                    
+                    // Crear objeto de modificación
+                    var modificacion = {
+                        campo: modificacionPendiente.campo,
+                        valorAnterior: modificacionPendiente.valorAnterior,
+                        valorNuevo: modificacionPendiente.valorNuevo,
+                        motivo: motivo,
+                        usuario: usuario,
+                        timestamp: timestamp
+                    };
+                    
+                    // Inicializar el array de modificaciones si no existe
+                    if (!registros[i].modificaciones) {
+                        registros[i].modificaciones = [];
+                    }
+                    
+                    // Agregar la modificación al historial
+                    registros[i].modificaciones.push(modificacion);
+                    
+                    // Marcar el registro como modificado
+                    registros[i].modificado = true;
+                    
+                    // Actualizar en Firebase si está conectado
+                    if (registros[i].firebaseId && isOnline) {
+                        actualizarRegistroEnFirebase(registros[i].firebaseId, registros[i]);
+                    }
+                    
+                    break;
+                }
+            }
+            
+            // Actualizar la tabla
+            aplicarFiltros();
+            cerrarModifyModal();
+            alert('✓ Modificación registrada correctamente');
+        }
+
+        function cancelarModificacion() {
+            // No se realiza ninguna acción, simplemente se cierra el modal
+            // El valor en la tabla permanece sin cambios
+            cerrarModifyModal();
+        }
+
+        function cerrarModifyModal() {
+            document.getElementById('modifyModal').style.display = 'none';
+            modificacionPendiente = null;
+        }
+
+        function actualizarRegistroEnFirebase(registroId, registroActualizado) {
+            if (!isOnline) {
+                console.warn('Sin conexión a Firebase. Registro actualizado localmente.');
+                return;
+            }
+
+            database.ref('registros/' + registroId).update(registroActualizado)
+                .then(function() {
+                    console.log('Registro actualizado en Firebase:', registroId);
+                })
+                .catch(function(error) {
+                    console.error('Error al actualizar registro en Firebase:', error);
+                });
+        }
+
+        function mostrarHistorialModificaciones(registroId) {
+            var registro = null;
+            for (var i = 0; i < registros.length; i++) {
+                if (registros[i].firebaseId === registroId || registros[i].id === registroId) {
+                    registro = registros[i];
+                    break;
+                }
+            }
+            
+            if (!registro || !registro.modificaciones || registro.modificaciones.length === 0) {
+                alert('No hay historial de modificaciones para este registro');
+                return;
+            }
+            
+            var historialHTML = '<div class="modifications-history">';
+            for (var j = 0; j < registro.modificaciones.length; j++) {
+                var mod = registro.modificaciones[j];
+                historialHTML += `
+                    <div class="modification-item">
+                        <div><span class="modification-field">${obtenerNombreCampo(mod.campo)}:</span> 
+                        "${mod.valorAnterior}" → "${mod.valorNuevo}"</div>
+                        <div><span class="modification-user">${mod.usuario}</span> - ${mod.motivo}</div>
+                        <div class="modification-time">${mod.timestamp}</div>
+                    </div>
+                `;
+            }
+            historialHTML += '</div>';
+            
+            // Mostrar en un modal o alerta
+            alert(historialHTML.replace(/<[^>]*>/g, ''));
+        }
+
+        // Verificar estado de conexión
+        function verificarConexion() {
+            var connectedRef = firebase.database().ref(".info/connected");
+            connectedRef.on("value", function(snap) {
+                if (snap.val() === true) {
+                    isOnline = true;
+                    document.getElementById('syncStatus').textContent = '🟢 Conectado';
+                    document.getElementById('syncStatus').className = 'sync-status sync-online';
+                    console.log("Conectado a Firebase");
+                } else {
+                    isOnline = false;
+                    document.getElementById('syncStatus').textContent = '🔴 Sin conexión';
+                    document.getElementById('syncStatus').className = 'sync-status sync-offline';
+                    console.log("Sin conexión a Firebase");
+                }
+            });
+        }
+
+        // Cargar registros desde Firebase al iniciar
+        function cargarRegistrosDesdeFirebase() {
+            var registrosRef = database.ref('registros');
+            
+            registrosRef.on('value', function(snapshot) {
+                registros = [];
+                var data = snapshot.val();
+                
+                if (data) {
+                    Object.keys(data).forEach(function(key) {
+                        var registro = data[key];
+                        registro.firebaseId = key;
+                        // Marcar registros con modificaciones
+                        if (registro.modificaciones && registro.modificaciones.length > 0) {
+                            registro.modificado = true;
+                        }
+                        registros.push(registro);
+                    });
+                    console.log("Registros cargados desde Firebase:", registros.length);
+                    aplicarFiltros();
+                } else {
+                    console.log("No hay registros en Firebase");
+                    actualizarTabla();
+                }
+            });
+
+            // Cargar asistencias desde Firebase
+            var asistenciasRef = database.ref('asistencias');
+            asistenciasRef.on('value', function(snapshot) {
+                asistencias = [];
+                var data = snapshot.val();
+                
+                if (data) {
+                    Object.keys(data).forEach(function(key) {
+                        var asistencia = data[key];
+                        asistencia.firebaseId = key;
+                        asistencias.push(asistencia);
+                    });
+                    console.log("Asistencias cargadas desde Firebase:", asistencias.length);
+                    actualizarTablaAsistencias();
+                } else {
+                    console.log("No hay asistencias en Firebase");
+                    actualizarTablaAsistencias();
+                }
+            });
+        }
+
+        // Funciones para Entradas y Salidas
+        function buscarEmpleado() {
+            var numero = document.getElementById('numeroEmpleado').value.trim();
+            
+            if (empleados[numero]) {
+                empleadoActual = {
+                    numero: numero,
+                    nombre: empleados[numero]
+                };
+                
+                document.getElementById('empleadoNombre').textContent = empleados[numero];
+                document.getElementById('empleadoNumero').textContent = 'Número: ' + numero;
+                document.getElementById('empleadoInfo').style.display = 'block';
+                
+                return true;
+            } else {
+                alert('❌ Número de empleado no encontrado');
+                document.getElementById('empleadoInfo').style.display = 'none';
+                empleadoActual = null;
+                return false;
+            }
+        }
+
+        function solicitarEntrada() {
+            if (!buscarEmpleado()) return;
+            
+            accionPendiente = 'ENTRADA';
+            document.getElementById('empleadoAuth').textContent = empleadoActual.nombre + ' (' + empleadoActual.numero + ')';
+            document.getElementById('authPassword').value = '';
+            document.getElementById('authError').style.display = 'none';
+            document.getElementById('authModal').style.display = 'block';
+            
+            setTimeout(function() {
+                document.getElementById('authPassword').focus();
+            }, 100);
+        }
+
+        function registrarSalida() {
+            if (!buscarEmpleado()) return;
+            registrarAsistencia('SALIDA');
+        }
+
+        function registrarComida(tipo) {
+            if (!buscarEmpleado()) return;
+            var tipoCompleto = tipo === 'SALIDA' ? 'SALIDA A COMER' : 'ENTRADA DE COMER';
+            registrarAsistencia(tipoCompleto);
+        }
+
+        function confirmarAutorizacion() {
+            var password = document.getElementById('authPassword').value;
+            
+            if (password === PASSWORD_SUPERVISOR) {
+                cerrarAuthModal();
+                registrarAsistencia(accionPendiente);
+            } else {
+                document.getElementById('authError').style.display = 'block';
+                document.getElementById('authPassword').value = '';
+                document.getElementById('authPassword').focus();
+            }
+        }
+
+        function cancelarAutorizacion() {
+            cerrarAuthModal();
+        }
+
+        function cerrarAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+            accionPendiente = null;
+        }
+
+        function registrarAsistencia(tipo) {
+            if (!empleadoActual) return;
+
+            var ahora = new Date();
+            var fecha = ahora.toLocaleDateString('es-MX');
+            var hora = ahora.toLocaleTimeString('es-MX');
+            
+            var nuevaAsistencia = {
+                id: Date.now(),
+                fecha: fecha,
+                hora: hora,
+                numero: empleadoActual.numero,
+                empleado: empleadoActual.nombre,
+                tipo: tipo,
+                supervisor: tipo === 'ENTRADA' ? 'SUPERVISOR' : 'SISTEMA',
+                timestamp: ahora.getTime()
+            };
+
+            asistencias.unshift(nuevaAsistencia); // Agregar al inicio
+            guardarAsistenciaEnFirebase(nuevaAsistencia);
+            actualizarTablaAsistencias();
+            
+            // Mostrar confirmación
+            var mensaje = '✅ ' + tipo + ' registrada para ' + empleadoActual.nombre;
+            alert(mensaje);
+            
+            // Limpiar campo de número
+            document.getElementById('numeroEmpleado').value = '';
+            document.getElementById('empleadoInfo').style.display = 'none';
+            empleadoActual = null;
+        }
+
+        function guardarAsistenciaEnFirebase(asistencia) {
+            if (!isOnline) {
+                console.warn('Sin conexión a Firebase. Asistencia guardada localmente.');
+                return;
+            }
+
+            var nuevaAsistenciaRef = database.ref('asistencias').push();
+            asistencia.firebaseId = nuevaAsistenciaRef.key;
+            nuevaAsistenciaRef.set(asistencia)
+                .then(function() {
+                    console.log('Asistencia guardada en Firebase:', asistencia);
+                })
+                .catch(function(error) {
+                    console.error('Error al guardar asistencia en Firebase:', error);
+                });
+        }
+
+        function actualizarTablaAsistencias() {
+            var tbody = document.getElementById('tablaAsistenciasBody');
+            
+            if (asistencias.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="no-data">No hay registros de asistencia aún.</td></tr>';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < asistencias.length; i++) {
+                var asistencia = asistencias[i];
+                var claseFila = '';
+                var claseTipo = '';
+                
+                if (asistencia.tipo === 'ENTRADA') {
+                    claseFila = 'registro-entrada';
+                    claseTipo = 'tipo-entrada';
+                } else if (asistencia.tipo === 'SALIDA') {
+                    claseFila = 'registro-salida';
+                    claseTipo = 'tipo-salida';
+                } else {
+                    claseFila = 'registro-comida';
+                    claseTipo = 'tipo-comida';
+                }
+                
+                html += '<tr class="' + claseFila + '">';
+                html += '<td>' + asistencia.fecha + '</td>';
+                html += '<td>' + asistencia.hora + '</td>';
+                html += '<td>' + asistencia.numero + '</td>';
+                html += '<td>' + asistencia.empleado + '</td>';
+                html += '<td class="' + claseTipo + '">' + asistencia.tipo + '</td>';
+                html += '<td>' + asistencia.supervisor + '</td>';
+                html += '</tr>';
+            }
+            tbody.innerHTML = html;
+        }
+
+        // Funciones para cargar base con contraseña
+        function solicitarCargarBase() {
+            document.getElementById('loadPassword').value = '';
+            document.getElementById('loadError').style.display = 'none';
+            document.getElementById('loadModal').style.display = 'block';
+            
+            setTimeout(function() {
+                document.getElementById('loadPassword').focus();
+            }, 100);
+        }
+
+        function confirmarCarga() {
+            var password = document.getElementById('loadPassword').value;
+            
+            if (password === PASSWORD_ELIMINAR) {
+                cerrarLoadModal();
+                document.getElementById('fileInput').click();
+            } else {
+                document.getElementById('loadError').style.display = 'block';
+                document.getElementById('loadPassword').value = '';
+                document.getElementById('loadPassword').focus();
+            }
+        }
+
+        function cancelarCarga() {
+            cerrarLoadModal();
+        }
+
+        function cerrarLoadModal() {
+            document.getElementById('loadModal').style.display = 'none';
+        }
+
+        function handleLoadKeypress(event) {
+            if (event.key === 'Enter') confirmarCarga();
+        }
+
+        // Funciones para guardar y limpiar
+        function solicitarGuardarYLimpiar() {
+            if (asistencias.length === 0) {
+                alert('No hay registros de asistencia para guardar.');
+                return;
+            }
+            
+            document.getElementById('savePassword').value = '';
+            document.getElementById('saveError').style.display = 'none';
+            document.getElementById('saveModal').style.display = 'block';
+            
+            setTimeout(function() {
+                document.getElementById('savePassword').focus();
+            }, 100);
+        }
+
+        function confirmarGuardado() {
+            var password = document.getElementById('savePassword').value;
+            
+            if (password === PASSWORD_ELIMINAR) {
+                guardarAsistenciasComoCSV();
+                limpiarAsistencias();
+                cerrarSaveModal();
+            } else {
+                document.getElementById('saveError').style.display = 'block';
+                document.getElementById('savePassword').value = '';
+                document.getElementById('savePassword').focus();
+            }
+        }
+
+        function cancelarGuardado() {
+            cerrarSaveModal();
+        }
+
+        function cerrarSaveModal() {
+            document.getElementById('saveModal').style.display = 'none';
+        }
+
+        function handleSaveKeypress(event) {
+            if (event.key === 'Enter') confirmarGuardado();
+        }
+
+        function guardarAsistenciasComoCSV() {
+            if (asistencias.length === 0) {
+                alert('No hay registros de asistencia para guardar.');
+                return;
+            }
+
+            var headers = ['Fecha', 'Hora', 'Número', 'Empleado', 'Tipo', 'Supervisor'];
+            var csvContent = headers.join(',') + '\n';
+            
+            for (var i = 0; i < asistencias.length; i++) {
+                var a = asistencias[i];
+                csvContent += a.fecha + ',' + a.hora + ',' + a.numero + ',' + a.empleado + ',' + a.tipo + ',' + a.supervisor + '\n';
+            }
+
+            var blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            
+            var fechaActual = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            var nombreArchivo = 'asistencias_' + fechaActual + '_' + new Date().getTime() + '.csv';
+            
+            link.download = nombreArchivo;
+            link.click();
+
+            alert('✓ Se guardaron ' + asistencias.length + ' registros de asistencia correctamente');
+        }
+
+        function limpiarAsistencias() {
+            // Eliminar de Firebase
+            if (isOnline) {
+                database.ref('asistencias').remove()
+                    .then(function() {
+                        console.log('Asistencias eliminadas de Firebase');
+                    })
+                    .catch(function(error) {
+                        console.error('Error al eliminar asistencias de Firebase:', error);
+                    });
+            }
+            
+            // Limpiar localmente
+            asistencias = [];
+            actualizarTablaAsistencias();
+            
+            alert('✓ Registros de asistencia limpiados correctamente');
+        }
+
+        // Funciones para registros de tienda
+        function guardarRegistroEnFirebase(registro) {
+            if (!isOnline) {
+                console.warn('Sin conexión a Firebase. Registro guardado localmente.');
+                return;
+            }
+
+            var nuevoRegistroRef = database.ref('registros').push();
+            registro.firebaseId = nuevoRegistroRef.key;
+            nuevoRegistroRef.set(registro)
+                .then(function() {
+                    console.log('Registro guardado en Firebase:', registro);
+                })
+                .catch(function(error) {
+                    console.error('Error al guardar registro en Firebase:', error);
+                });
+        }
+
+        function eliminarRegistroDeFirebase(registroId) {
+            if (!isOnline) {
+                console.warn('Sin conexión a Firebase. Registro eliminado localmente.');
+                return;
+            }
+
+            database.ref('registros/' + registroId).remove()
+                .then(function() {
+                    console.log('Registro eliminado de Firebase:', registroId);
+                })
+                .catch(function(error) {
+                    console.error('Error al eliminar registro de Firebase:', error);
+                });
+        }
+
+        function sincronizarConFirebase() {
+            if (!isOnline) {
+                alert('No hay conexión a Internet. Conéctate para sincronizar.');
+                return;
+            }
+            
+            // Sincronizar registros locales con Firebase
+            registros.forEach(function(registro) {
+                if (!registro.firebaseId) {
+                    guardarRegistroEnFirebase(registro);
+                }
+            });
+            
+            // Sincronizar asistencias locales con Firebase
+            asistencias.forEach(function(asistencia) {
+                if (!asistencia.firebaseId) {
+                    guardarAsistenciaEnFirebase(asistencia);
+                }
+            });
+            
+            alert('✓ Sincronización completada');
+        }
+
+        // Funciones del modal de eliminación
+        function solicitarEliminacion(registroId, folio) {
+            registroAEliminar = registroId;
+            document.getElementById('folioEliminar').textContent = folio;
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordError').style.display = 'none';
+            document.getElementById('deleteModal').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('passwordInput').focus();
+            }, 100);
+        }
+
+        function confirmarEliminacion() {
+            var password = document.getElementById('passwordInput').value;
+            if (password === PASSWORD_ELIMINAR) {
+                registros = registros.filter(function(registro) {
+                    return registro.firebaseId !== registroAEliminar && registro.id !== registroAEliminar;
+                });
+                if (registroAEliminar && registroAEliminar.includes('-')) {
+                    eliminarRegistroDeFirebase(registroAEliminar);
+                }
+                aplicarFiltros();
+                cerrarModal();
+                alert('✓ Registro eliminado correctamente');
+            } else {
+                document.getElementById('passwordError').style.display = 'block';
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+        }
+
+        function cancelarEliminacion() {
+            cerrarModal();
+        }
+
+        function cerrarModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            registroAEliminar = null;
+        }
+
+        function handlePasswordKeypress(event) {
+            if (event.key === 'Enter') confirmarEliminacion();
+        }
+
+        function handleAuthKeypress(event) {
+            if (event.key === 'Enter') confirmarAutorizacion();
+        }
+
+        window.onclick = function(event) {
+            var modal = document.getElementById('deleteModal');
+            var authModal = document.getElementById('authModal');
+            var loadModal = document.getElementById('loadModal');
+            var saveModal = document.getElementById('saveModal');
+            var modifyModal = document.getElementById('modifyModal');
+            var clearBaseModal = document.getElementById('clearBaseModal');
+            
+            if (event.target === modal) cerrarModal();
+            if (event.target === authModal) cerrarAuthModal();
+            if (event.target === loadModal) cerrarLoadModal();
+            if (event.target === saveModal) cerrarSaveModal();
+            if (event.target === modifyModal) cerrarModifyModal();
+            if (event.target === clearBaseModal) cerrarClearBaseModal();
+        }
+
+        // Funciones auxiliares
+        function establecerFechaActual() {
+            var hoy = new Date();
+            var dia = String(hoy.getDate()).padStart(2, '0');
+            var mes = String(hoy.getMonth() + 1).padStart(2, '0');
+            var anio = hoy.getFullYear();
+            document.getElementById('fecha').value = dia + '/' + mes + '/' + anio;
+        }
+
+        // Funciones de filtros
+        function convertirFecha(fechaStr) {
+            var partes = fechaStr.split('/');
+            if (partes.length === 3) {
+                return new Date(partes[2], partes[1] - 1, partes[0]);
+            }
+            return null;
+        }
+
+        function obtenerTiendasSeleccionadas() {
+            var select = document.getElementById('filtroTienda');
+            var tiendas = [];
+            var options = select.options;
+            for (var i = 0; i < options.length; i++) {
+                if (options[i].selected) {
+                    tiendas.push(options[i].value);
+                }
+            }
+            return tiendas;
+        }
+
+        function aplicarFiltros() {
+            var fechaInicio = document.getElementById('filtroFechaInicio').value;
+            var fechaFin = document.getElementById('filtroFechaFin').value;
+            var folio = document.getElementById('filtroFolio').value.trim();
+            var tiendasSeleccionadas = obtenerTiendasSeleccionadas();
+            var status = document.getElementById('filtroStatus').value;
+            var soloModificaciones = document.getElementById('filtroModificaciones').checked;
+
+            registrosFiltrados = registros.filter(function(registro) {
+                var cumpleFecha = true;
+                var cumpleFolio = true;
+                var cumpleTienda = true;
+                var cumpleStatus = true;
+                var cumpleModificaciones = true;
+
+                if (fechaInicio || fechaFin) {
+                    var fechaRegistro = convertirFecha(registro.fecha);
+                    if (fechaRegistro) {
+                        if (fechaInicio) {
+                            var inicio = new Date(fechaInicio);
+                            cumpleFecha = cumpleFecha && fechaRegistro >= inicio;
+                        }
+                        if (fechaFin) {
+                            var fin = new Date(fechaFin);
+                            fin.setHours(23, 59, 59, 999);
+                            cumpleFecha = cumpleFecha && fechaRegistro <= fin;
+                        }
+                    }
+                }
+
+                if (folio) {
+                    cumpleFolio = registro.folio.toLowerCase().includes(folio.toLowerCase());
+                }
+
+                if (tiendasSeleccionadas.length > 0) {
+                    cumpleTienda = false;
+                    for (var i = 0; i < tiendasSeleccionadas.length; i++) {
+                        if (registro.tienda === tiendasSeleccionadas[i]) {
+                            cumpleTienda = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (status) {
+                    cumpleStatus = registro.status === status;
+                }
+
+                // Filtro de modificaciones
+                if (soloModificaciones) {
+                    cumpleModificaciones = registro.modificado === true && 
+                                          registro.modificaciones && 
+                                          registro.modificaciones.length > 0;
+                }
+
+                return cumpleFecha && cumpleFolio && cumpleTienda && cumpleStatus && cumpleModificaciones;
+            });
+
+            actualizarTablaConFiltros(registrosFiltrados);
+        }
+
+        function limpiarFiltros() {
+            document.getElementById('filtroFechaInicio').value = '';
+            document.getElementById('filtroFechaFin').value = '';
+            document.getElementById('filtroFolio').value = '';
+            document.getElementById('filtroStatus').value = '';
+            document.getElementById('filtroModificaciones').checked = false;
+            var select = document.getElementById('filtroTienda');
+            for (var i = 0; i < select.options.length; i++) {
+                select.options[i].selected = false;
+            }
+            registrosFiltrados = registros.slice();
+            actualizarTabla();
+        }
+
+        function actualizarTabla() {
+            registrosFiltrados = registros.slice();
+            actualizarTablaConFiltros(registrosFiltrados);
+        }
+
+        function actualizarTablaConFiltros(registrosMostrar) {
+            var tbody = document.getElementById('tablaBody');
+            var resultsCount = document.getElementById('resultsCount');
+            
+            if (registrosMostrar.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No hay registros que coincidan con los filtros.</td></tr>';
+                resultsCount.textContent = 'Total de registros: ' + registros.length + ' | Mostrando: 0';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < registrosMostrar.length; i++) {
+                var registro = registrosMostrar[i];
+                var registroId = registro.firebaseId || registro.id;
+                
+                // Determinar clase para filas modificadas
+                var claseFila = registro.modificado ? 'registro-modificado' : '';
+                
+                html += '<tr class="' + claseFila + '">';
+                html += '<td><input type="text" class="editable-field" value="' + registro.fecha + '" onchange="prepararEdicion(\'' + registroId + '\', \'fecha\', this.value)"></td>';
+                html += '<td><input type="text" class="editable-field" value="' + registro.folio + '" onchange="prepararEdicion(\'' + registroId + '\', \'folio\', this.value)"></td>';
+                html += '<td>';
+                html += '<select class="editable-field" onchange="prepararEdicion(\'' + registroId + '\', \'tienda\', this.value)">';
+                html += '<option value="VALLE"' + (registro.tienda === 'VALLE' ? ' selected' : '') + '>VALLE</option>';
+                html += '<option value="POPULAR"' + (registro.tienda === 'POPULAR' ? ' selected' : '') + '>POPULAR</option>';
+                html += '<option value="SAN AGUSTIN"' + (registro.tienda === 'SAN AGUSTIN' ? ' selected' : '') + '>SAN AGUSTIN</option>';
+                html += '<option value="PROGRESO1"' + (registro.tienda === 'PROGRESO1' ? ' selected' : '') + '>PROGRESO1</option>';
+                html += '<option value="PROGRESO2"' + (registro.tienda === 'PROGRESO2' ? ' selected' : '') + '>PROGRESO2</option>';
+                html += '<option value="CUAUTEPEC"' + (registro.tienda === 'CUAUTEPEC' ? ' selected' : '') + '>CUAUTEPEC</option>';
+                html += '<option value="CUAUTITLAN"' + (registro.tienda === 'CUAUTITLAN' ? ' selected' : '') + '>CUAUTITLAN</option>';
+                html += '<option value="TULPETLAC"' + (registro.tienda === 'TULPETLAC' ? ' selected' : '') + '>TULPETLAC</option>';
+                html += '<option value="TIZAYUCA"' + (registro.tienda === 'TIZAYUCA' ? ' selected' : '') + '>TIZAYUCA</option>';
+                html += '<option value="ZUMPANGO"' + (registro.tienda === 'ZUMPANGO' ? ' selected' : '') + '>ZUMPANGO</option>';
+                html += '<option value="NICOLAS"' + (registro.tienda === 'NICOLAS' ? ' selected' : '') + '>NICOLAS</option>';
+                html += '<option value="TECAMAC1"' + (registro.tienda === 'TECAMAC1' ? ' selected' : '') + '>TECAMAC1</option>';
+                html += '<option value="TECAMAC2"' + (registro.tienda === 'TECAMAC2' ? ' selected' : '') + '>TECAMAC2</option>';
+                html += '</select>';
+                html += '</td>';
+                html += '<td>';
+                html += '<select class="editable-field" onchange="prepararEdicion(\'' + registroId + '\', \'status\', this.value)">';
+                html += '<option value="CANCELADO DE CAJA"' + (registro.status === 'CANCELADO DE CAJA' ? ' selected' : '') + '>CANCELADO DE CAJA</option>';
+                html += '<option value="CANCELADO DE BASCULA"' + (registro.status === 'CANCELADO DE BASCULA' ? ' selected' : '') + '>CANCELADO DE BASCULA</option>';
+                html += '<option value="PENDIENTE"' + (registro.status === 'PENDIENTE' ? ' selected' : '') + '>PENDIENTE</option>';
+                html += '<option value="PAGAGO, NO COBRADO"' + (registro.status === 'PAGAGO, NO COBRADO' ? ' selected' : '') + '>PAGAGO, NO COBRADO</option>';
+                html += '<option value="PAGADO"' + (registro.status === 'PAGADO' ? ' selected' : '') + '>PAGADO</option>';
+                html += '<option value="SIN CANCELAR"' + (registro.status === 'SIN CANCELAR' ? ' selected' : '') + '>SIN CANCELAR</option>';
+                html += '</select>';
+                html += '</td>';
+                html += '<td>';
+                html += '<select class="editable-field" onchange="prepararEdicion(\'' + registroId + '\', \'motivo\', this.value)">';
+                html += '<option value="LA TIENDA NO LO NOTIFICO"' + (registro.motivo === 'LA TIENDA NO LO NOTIFICO' ? ' selected' : '') + '>LA TIENDA NO LO NOTIFICO</option>';
+                html += '<option value="EN ESPERA DE FIRMA"' + (registro.motivo === 'EN ESPERA DE FIRMA' ? ' selected' : '') + '>EN ESPERA DE FIRMA</option>';
+                html += '<option value="PEDIDO CLIENTE SIN HORA"' + (registro.motivo === 'PEDIDO CLIENTE SIN HORA' ? ' selected' : '') + '>PEDIDO CLIENTE SIN HORA</option>';
+                html += '<option value="CADUCIDAD"' + (registro.motivo === 'CADUCIDAD' ? ' selected' : '') + '>CADUCIDAD</option>';
+                html += '<option value="PRODUCTO EN MAL ESTADO"' + (registro.motivo === 'PRODUCTO EN MAL ESTADO' ? ' selected' : '') + '>PRODUCTO EN MAL ESTADO</option>';
+                html += '<option value="ERROR DEL VENDEDOR"' + (registro.motivo === 'ERROR DEL VENDEDOR' ? ' selected' : '') + '>ERROR DEL VENDEDOR</option>';
+                html += '<option value="ERROR DEL CLIENTE"' + (registro.motivo === 'ERROR DEL CLIENTE' ? ' selected' : '') + '>ERROR DEL CLIENTE</option>';
+                html += '<option value="ERROR DEL SISTEMA"' + (registro.motivo === 'ERROR DEL SISTEMA' ? ' selected' : '') + '>ERROR DEL SISTEMA</option>';
+                html += '<option value="ERROR DEL CAJERO"' + (registro.motivo === 'ERROR DEL CAJERO' ? ' selected' : '') + '>ERROR DEL CAJERO</option>';
+                html += '<option value="ERROR DE INVENTARIO"' + (registro.motivo === 'ERROR DE INVENTARIO' ? ' selected' : '') + '>ERROR DE INVENTARIO</option>';
+                html += '<option value="NO HAY EXISTENCIA DE PRODUCTO"' + (registro.motivo === 'NO HAY EXISTENCIA DE PRODUCTO' ? ' selected' : '') + '>NO HAY EXISTENCIA DE PRODUCTO</option>';
+                html += '</select>';
+                html += '</td>';
+                html += '<td><input type="text" class="editable-field" value="' + registro.vendedor + '" onchange="prepararEdicion(\'' + registroId + '\', \'vendedor\', this.value)"></td>';
+                html += '<td><input type="number" class="editable-field" step="0.01" value="' + registro.monto + '" onchange="prepararEdicion(\'' + registroId + '\', \'monto\', this.value)"></td>';
+                html += '<td>';
+                if (registro.modificaciones && registro.modificaciones.length > 0) {
+                    html += '<button class="btn-load" onclick="mostrarHistorialModificaciones(\'' + registroId + '\')">📋 ' + registro.modificaciones.length + ' mods</button>';
+                } else {
+                    html += '<span style="color:#888; font-size:0.85em;">Sin modificaciones</span>';
+                }
+                html += '</td>';
+                html += '<td><button class="btn-delete" onclick="solicitarEliminacion(\'' + registroId + '\', \'' + registro.folio + '\')">🗑️ Eliminar</button></td>';
+                html += '</tr>';
+            }
+            tbody.innerHTML = html;
+            resultsCount.textContent = 'Total de registros: ' + registros.length + ' | Mostrando: ' + registrosMostrar.length;
+        }
+
+        function exportarExcel() {
+            var registrosAExportar = registrosFiltrados.length > 0 ? registrosFiltrados : registros;
+            if (registrosAExportar.length === 0) {
+                alert('No hay registros para exportar');
+                return;
+            }
+            
+            // Cabeceras incluyendo el campo de modificaciones
+            var headers = ['Fecha', 'Folio', 'Tienda', 'Status', 'Motivo', 'Vendedor', 'Monto', 'Modificaciones'];
+            var csvContent = headers.join(',') + '\n';
+            
+            for (var i = 0; i < registrosAExportar.length; i++) {
+                var r = registrosAExportar[i];
+                
+                // Construir el texto de las modificaciones
+                var textoModificaciones = '';
+                if (r.modificaciones && r.modificaciones.length > 0) {
+                    var modsTexto = [];
+                    for (var j = 0; j < r.modificaciones.length; j++) {
+                        var mod = r.modificaciones[j];
+                        var modTexto = obtenerNombreCampo(mod.campo) + ': "' + mod.valorAnterior + '" → "' + mod.valorNuevo + '" - ' + mod.usuario + ' - ' + mod.motivo + ' (' + mod.timestamp + ')';
+                        modsTexto.push(modTexto);
+                    }
+                    textoModificaciones = modsTexto.join(' | ');
+                }
+                
+                // Escapar comas y comillas en el texto de modificaciones para CSV
+                textoModificaciones = textoModificaciones.replace(/"/g, '""');
+                if (textoModificaciones.includes(',') || textoModificaciones.includes('"')) {
+                    textoModificaciones = '"' + textoModificaciones + '"';
+                }
+                
+                csvContent += r.fecha + ',' + r.folio + ',' + r.tienda + ',' + r.status + ',' + r.motivo + ',' + r.vendedor + ',$' + r.monto + ',' + textoModificaciones + '\n';
+            }
+            
+            var blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            var nombreArchivo = 'registros';
+            if (registrosFiltrados.length !== registros.length && registrosFiltrados.length > 0) {
+                nombreArchivo += '_filtrados';
+            }
+            nombreArchivo += '_' + new Date().getTime() + '.csv';
+            link.download = nombreArchivo;
+            link.click();
+            alert('✓ Se exportaron ' + registrosAExportar.length + ' registros correctamente');
+        }
+
+        function cargarArchivo(event) {
+            var archivo = event.target.files[0];
+            if (!archivo) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var data = new Uint8Array(e.target.result);
+                    var workbook = XLSX.read(data, {type: 'array'});
+                    var primerHoja = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[primerHoja];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    if (jsonData.length === 0) {
+                        alert('El archivo está vacío');
+                        return;
+                    }
+                    var registrosCargados = 0;
+                    for (var i = 0; i < jsonData.length; i++) {
+                        var fila = jsonData[i];
+                        var nuevoRegistro = {
+                            id: Date.now() + i,
+                            fecha: fila.FECHA || fila.Fecha || fila.fecha || '',
+                            folio: fila.FOLIO || fila.Folio || fila.folio || '',
+                            tienda: fila.TIENDA || fila.Tienda || fila.tienda || '',
+                            status: fila.STATUS || fila.Status || fila.status || '',
+                            motivo: fila.MOTIVO || fila.Motivo || fila.motivo || '',
+                            vendedor: fila.VENDEDOR || fila.Vendedor || fila.vendedor || '',
+                            monto: fila.MONTO || fila.Monto || fila.monto || '0'
+                        };
+                        if (typeof nuevoRegistro.monto === 'string') {
+                            nuevoRegistro.monto = nuevoRegistro.monto.replace('$', '').replace(',', '');
+                        }
+                        nuevoRegistro.monto = parseFloat(nuevoRegistro.monto).toFixed(2);
+                        if (nuevoRegistro.folio) {
+                            registros.push(nuevoRegistro);
+                            guardarRegistroEnFirebase(nuevoRegistro);
+                            registrosCargados++;
+                        }
+                    }
+                    aplicarFiltros();
+                    alert('✓ Se cargaron ' + registrosCargados + ' registros correctamente');
+                    event.target.value = '';
+                } catch (error) {
+                    alert('Error al leer el archivo: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(archivo);
+        }
+
+        // Inicializar
+        establecerFechaActual();
+        verificarConexion();
+        cargarRegistrosDesdeFirebase();
+
+        // Event listener para el formulario de registros
+        document.getElementById('registroForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var nuevoRegistro = {
+                id: Date.now(),
+                fecha: document.getElementById('fecha').value,
+                folio: document.getElementById('folio').value,
+                tienda: document.getElementById('tienda').value,
+                status: document.getElementById('status').value,
+                motivo: document.getElementById('motivo').value,
+                vendedor: document.getElementById('vendedor').value,
+                monto: parseFloat(document.getElementById('monto').value).toFixed(2)
+            };
+            registros.push(nuevoRegistro);
+            guardarRegistroEnFirebase(nuevoRegistro);
+            aplicarFiltros();
+            this.reset();
+            establecerFechaActual();
+            var btn = document.querySelector('.btn');
+            btn.textContent = '✓ Agregado!';
+            btn.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+            setTimeout(function() {
+                btn.textContent = 'Agregar Registro';
+                btn.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
+            }, 1500);
+        });
+
+        registrosFiltrados = registros.slice();
+    </script>
+</body>
+</html>
